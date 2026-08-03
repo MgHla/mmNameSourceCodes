@@ -1,0 +1,44 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.tbl_name_map (
+  id integer NOT NULL DEFAULT nextval('tbl_name_map_id_seq'::regclass),
+  eng_name character varying NOT NULL,
+  mm_name character varying NOT NULL,
+  remark character varying,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT tbl_name_map_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.tbl_nrc_map (
+  id integer NOT NULL DEFAULT nextval('tbl_nrc_map_id_seq'::regclass),
+  eng_div_tsp character varying NOT NULL,
+  div_code character varying NOT NULL,
+  tsp_id character varying NOT NULL,
+  remark character varying,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT tbl_nrc_map_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.tbl_nrc_type_map (
+  id integer NOT NULL DEFAULT nextval('tbl_nrc_type_map_id_seq'::regclass),
+  nrctype_en character varying NOT NULL,
+  nrctype_mm character varying NOT NULL,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT tbl_nrc_type_map_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.tbl_phone_map (
+  id integer NOT NULL DEFAULT nextval('tbl_phone_map_id_seq'::regclass),
+  town character varying,
+  area_code character varying NOT NULL,
+  r_code character varying,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT tbl_phone_map_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.active_sessions (
+  id integer NOT NULL DEFAULT nextval('active_sessions_id_seq'::regclass),
+  session_id character varying NOT NULL UNIQUE,
+  ip_address character varying,
+  user_agent text,
+  created_at timestamp without time zone DEFAULT now(),
+  last_activity timestamp without time zone DEFAULT now(),
+  CONSTRAINT active_sessions_pkey PRIMARY KEY (id)
+);
