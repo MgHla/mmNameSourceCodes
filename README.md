@@ -22,11 +22,11 @@
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla JS)
-
-- **Backend / Database**: Supabase
-
-- **Serverless / Hosting**: Cloudflare Workers
+-   **Frontend:** HTML5, CSS3, JavaScript (Vanilla JS)
+    
+-   **Backend / Database:** [Supabase](https://supabase.com/)
+    
+-   **Serverless / Hosting:** [Cloudflare Workers & Pages](https://workers.cloudflare.com/)
 
 ## 📖 Mapping Data Source
 အမည်များ ပြောင်းလဲရာတွင် အသုံးပြုထားသည့် English to Myanmar Name Mapping Data များကို Open Source အဖြစ် အောက်ပါ Repository တွင် လေ့လာကြည့်ရှုနိုင်ပါသည်-👉 GitHub Repository: [MgHla/Myanmar-Name_en-2-mm](https://github.com/MgHla/Myanmar-Name_en-2-mm)
