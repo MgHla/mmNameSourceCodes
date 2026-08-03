@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processing Results - မြန်မာအမည်များ ဘာသာပြန်ခြင်းစနစ်</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container">
+            <span class="navbar-brand"><i class="bi bi-geo-alt"></i> မြန်မာအမည်များ ဘာသာပြန်ခြင်းစနစ်</span>
+            <div>
+                <a href="upload.html" class="btn btn-outline-light btn-sm me-2">New Upload</a>
+                <a href="index.html" class="btn btn-outline-light btn-sm">Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-xxl mt-4">
+        <!-- Status -->
+        <div id="statusSection" class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3" id="statusText">Checking data...</p>
+        </div>
+        
+        <!-- Error -->
+        <div id="errorSection" class="alert alert-danger d-none"></div>
+        
+        <!-- Summary -->
+        <div id="summarySection" class="row mb-4 d-none">
+            <div class="col-md-3 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h3 id="totalRecords">0</h3>
+                        <p class="mb-0">Total Records</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h3 id="nameMatched">0</h3>
+                        <p class="mb-0">Name Matched</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h3 id="nrcMatched">0</h3>
+                        <p class="mb-0">NRC Matched</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h3 id="phoneMatched">0</h3>
+                        <p class="mb-0">Phone Matched</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Table -->
+        <div id="resultsSection" class="card shadow d-none">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Processing Results</h5>
+                <span id="recordCount" class="badge bg-success"></span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table table-striped table-bordered table-hover">
+                        <thead class="table-dark text-center align-middle">
+                            <tr>
+                                <th>No</th>
+                                <th>enName</th>
+                                <th>NRC</th>
+                                <th>Phone</th>
+                                <th style="background-color:#118504">အမည်</th>
+                                <th style="background-color:#118504">NRC တိုင်း/ပြည်နယ်</th>
+                                <th style="background-color:#118504">NRC မြို့နယ်</th>
+                                <th style="background-color:#118504">NRC အမျိုးအစား</th>
+                                <th style="background-color:#118504">NRC နံပါတ်</th>
+                                <th style="background-color:#118504">ဖုန်းနံပါတ်</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody"></tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3 d-flex gap-2">
+                    <button onclick="exportToCSV()" class="btn btn-success">
+                        Export to CSV
+                    </button>
+                    <button onclick="window.print()" class="btn btn-secondary">
+                        Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+ 
+    <footer class="text-center text-muted mt-5 mb-3">
+        <small>မြန်မာအမည်များ ဘာသာပြန်ခြင်းစနစ် by MgHla &copy; 2026</small>
+    </footer>
+	
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+    // ============ Config ============
+    // IMPORTANT: Replace with your Supabase credentials
+    const SUPABASE_URL = 'https://YOUR-SUPABASE-URL.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YOUR-SUPABASE-KEY_';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY); 
+
+    // ============ Debug Function ============
+    function debugLog(message, data) {
+        console.log(`[PROCESS DEBUG] ${message}`, data || '');
+        const debugInfo = document.getElementById('debugInfo');
+        const debugContent = document.getElementById('debugContent');
+        if (debugInfo && debugContent) {
+            debugInfo.classList.remove('d-none');
+            debugContent.textContent += `${new Date().toLocaleTimeString()}: ${message}\n`;
+            if (data) {
+                debugContent.textContent += JSON.stringify(data, null, 2) + '\n';
+            }
+        }
+    }
+    
+    // ============ Utility Functions ============
+    function removeAllSpaces(str) {
+        return str ? str.replace(/\s+/g, '') : '';
+    }
+    
+    function convertToMyanmarDigits(number) {
+        if (!number) return '';
+        const mmDigits = ['၀', '၁', '၂', '၃', '၄', '၅', '၆', '၇', '၈', '၉'];
+        let result = number;
+        for (let i = 0; i <= 9; i++) {
+            result = result.replace(new RegExp(String(i), 'g'), mmDigits[i]);
+        }
+        return result;
+    }
+    
+    // ============ Supabase Query ============
+    async function queryTable(table, options = {}) {
+        const { select = '*', match, order, limit } = options;
+        
+        let url = `${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}`;
+        
+        if (match) {
+            Object.entries(match).forEach(([key, value]) => {
+                url += `&${key}=eq.${encodeURIComponent(value)}`;
+            });
+        }
+        
+        if (order) url += `&order=${encodeURIComponent(order)}`;
+        if (limit) url += `&limit=${limit}`;
+        
+        debugLog(`Query: ${url}`);
+        
+        const response = await fetch(url, {
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
+    }
+    
+    // ============ Process Name ============
+	async function processNameMapping(enName) {
+		if (!enName) return '';
+
+		const words = enName.trim().split(/\s+/);
+		const mmWords = [];
+		
+		for (const word of words) {
+			if (word) {
+				try {
+					const { data: results, error } = await db
+						.from('tbl_name_map')
+						.select('mm_name')
+						.ilike('eng_name', word)
+						.limit(1);
+					
+					if (error) {
+						console.error("Supabase Error for word:", word, error.message);
+						mmWords.push(word);
+					} else if (results && results.length > 0) {
+						mmWords.push(results[0].mm_name);
+					} else {
+						mmWords.push(word);
+					}
+				} catch (err) {
+					console.error("Error:", err);
+					mmWords.push(word);
+				}
+			}
+		}
+
+		return mmWords.join('');
+	}    
+    // ============ Process NRC ============
+async function processNRCMapping(nrc) {
+    const result = {
+        NRCdiv: '',
+        NRCtsp: '',
+        NRCtype: '',
+        NRCno: ''
+    };
+
+    if (!nrc) return result;
+
+    const originalNRC = nrc;
+    const cleanNrc = removeAllSpaces(nrc).toUpperCase(); 
+
+    const matches = cleanNrc.match(/^(\d+\/[^(]+)\s*\(?([^)]+)\)?\s*(.+)$/);
+
+    if (matches) {
+        const regionTsp = matches[1].trim();
+        let nrcType = matches[2].trim();
+        let nrcNumber = matches[3].trim();
+
+        nrcType = nrcType.replace(/[()]/g, '').trim();
+
+        try {
+            let nrcMap = null;
+            const { data: exactMatchData, error: exactMatchErr } = await db
+                .from('tbl_nrc_map')
+                .select('div_code, tsp_id')
+                .eq('eng_div_tsp', regionTsp)
+                .limit(1);
+
+            if (!exactMatchErr && exactMatchData && exactMatchData.length > 0) {
+                nrcMap = exactMatchData[0];
+            }
+
+            if (!nrcMap) {
+                const { data: allNrcMaps, error: allNrcErr } = await db
+                    .from('tbl_nrc_map')
+                    .select('eng_div_tsp, div_code, tsp_id');
+
+                if (!allNrcErr && allNrcMaps) {
+                    for (const map of allNrcMaps) {
+                        if (map.eng_div_tsp && removeAllSpaces(map.eng_div_tsp).toUpperCase() === regionTsp) {
+                            nrcMap = map;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (nrcMap) {
+                result.NRCdiv = nrcMap.div_code;
+                result.NRCtsp = nrcMap.tsp_id;
+            }
+
+            const { data: typeMapData, error: typeMapErr } = await db
+                .from('tbl_nrc_type_map')
+                .select('nrctype_mm')
+                .eq('nrctype_en', nrcType)
+                .limit(1);
+
+            if (!typeMapErr && typeMapData && typeMapData.length > 0) {
+                result.NRCtype = typeMapData[0].nrctype_mm;
+            }
+
+            nrcNumber = removeAllSpaces(nrcNumber);
+            result.NRCno = convertToMyanmarDigits(nrcNumber);
+
+        } catch (error) {
+            console.error("NRC Database Error:", error);
+        }
+    }
+
+    return result;
+}
+    
+    // ============ Process Phone ============
+    async function processPhoneNumber(phone) {
+        if (!phone) return { ePhone: '', matched: false };
+        
+        const cleanPhone = removeAllSpaces(phone);
+        
+        try {
+            const areaCodes = await queryTable('tbl_phone_map', {
+                order: 'area_code.desc'
+            });
+            
+            for (const ac of areaCodes) {
+                const code = removeAllSpaces(ac.area_code);
+                if (cleanPhone.toLowerCase().startsWith(code.toLowerCase())) {
+                    let remaining = cleanPhone.substring(code.length);
+                    remaining = remaining.replace(/^[()\-_., ]+/, '');
+                    let ePhone = ac.r_code ? ac.r_code + remaining : remaining;
+                    return { ePhone: ePhone.replace(/[^0-9]/g, ''), matched: true };
+                }
+            }
+        } catch (e) {
+            debugLog('Phone mapping error:', e.message);
+        }
+        
+        return { ePhone: phone.replace(/[^0-9]/g, ''), matched: false };
+    }
+    
+    // ============ Main Process ============
+    async function processData() {
+        debugLog('=== Starting Data Processing ===');
+        
+        // Get data from sessionStorage
+        const dataStr = sessionStorage.getItem('processed_data');
+        debugLog('Data from sessionStorage:', dataStr ? `Found (${dataStr.length} chars)` : 'NOT FOUND');
+        
+        if (!dataStr) {
+            showError('No data found. Please <a href="upload.html">upload a file</a> first.');
+            return;
+        }
+        
+        let data;
+        try {
+            data = JSON.parse(dataStr);
+            debugLog(`Parsed ${data.length} records`);
+        } catch (e) {
+            showError('Failed to parse stored data. Please upload again.');
+            return;
+        }
+        
+        if (!Array.isArray(data) || data.length === 0) {
+            showError('No valid records found.');
+            return;
+        }
+        
+        // Update status
+        document.getElementById('statusText').textContent = `Processing ${data.length} records...`;
+        
+        const results = [];
+        let nameCount = 0, nrcCount = 0, phoneCount = 0;
+        
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            document.getElementById('statusText').textContent = 
+                `Processing ${i + 1}/${data.length}...`;
+            
+            try {
+                const mmName = await processNameMapping(row.enName);
+                if (mmName && mmName !== row.enName) nameCount++;
+                
+                const nrcData = await processNRCMapping(row.NRC);
+                if (nrcData.NRCdiv) nrcCount++;
+                
+                const phoneData = await processPhoneNumber(row.Phone);
+                if (phoneData.matched) phoneCount++;
+                
+                results.push({
+                    No: row.No || (i + 1),
+                    enName: row.enName || '',
+                    NRC: row.NRC || '',
+                    Phone: row.Phone || '',
+                    mmName: mmName,
+                    NRCdiv: nrcData.NRCdiv,
+                    NRCtsp: nrcData.NRCtsp,
+                    NRCtype: nrcData.NRCtype,
+                    NRCno: nrcData.NRCno,
+                    ePhone: phoneData.ePhone
+                });
+            } catch (e) {
+                debugLog(`Error processing row ${i}:`, e.message);
+                results.push({
+                    No: row.No || (i + 1),
+                    enName: row.enName || '',
+                    NRC: row.NRC || '',
+                    Phone: row.Phone || '',
+                    mmName: '',
+                    NRCdiv: '',
+                    NRCtsp: '',
+                    NRCtype: '',
+                    NRCno: '',
+                    ePhone: ''
+                });
+            }
+        }
+        
+        // Store results
+        sessionStorage.setItem('processed_results', JSON.stringify(results));
+        
+        // Display results
+        displayResults(results, nameCount, nrcCount, phoneCount);
+    }
+    
+    function displayResults(results, nameCount, nrcCount, phoneCount) {
+        document.getElementById('statusSection').classList.add('d-none');
+        document.getElementById('summarySection').classList.remove('d-none');
+        document.getElementById('resultsSection').classList.remove('d-none');
+        
+        document.getElementById('totalRecords').textContent = results.length;
+        document.getElementById('nameMatched').textContent = nameCount;
+        document.getElementById('nrcMatched').textContent = nrcCount;
+        document.getElementById('phoneMatched').textContent = phoneCount;
+        document.getElementById('recordCount').textContent = `${results.length} records`;
+        
+        const tbody = document.getElementById('resultsBody');
+        tbody.innerHTML = '';
+        
+        results.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="background-color:#FFFCEB">${esc(row.No)}</td> 
+                <td style="background-color:#FFFCEB">${esc(row.enName)}</td>
+                <td style="background-color:#FFFCEB"><small>${esc(row.NRC)}</small></td>
+                <td style="background-color:#FFFCEB"><small>${esc(row.Phone)}</small></td>
+                <td style="background-color:#EDFFEB">${esc(row.mmName)}</td>
+                <td style="background-color:#EDFFEB">${esc(row.NRCdiv)}</td>
+                <td style="background-color:#EDFFEB">${esc(row.NRCtsp)}</td>
+                <td style="background-color:#EDFFEB">${esc(row.NRCtype)}</td>
+                <td style="background-color:#EDFFEB">${esc(row.NRCno)}</td>
+                <td style="background-color:#EDFFEB">${esc(row.ePhone)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    
+    function showError(msg) {
+        document.getElementById('statusSection').classList.add('d-none');
+        const el = document.getElementById('errorSection');
+        el.innerHTML = msg;
+        el.classList.remove('d-none');
+    }
+    
+    function esc(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+    
+    // ============ Export ============
+function exportToCSV() {
+    const results = JSON.parse(sessionStorage.getItem('processed_results') || '[]');
+    if (!results.length) {
+        alert('ထုတ်ယူရန် အချက်အလက် မရှိပါ။');
+        return;
+    }
+    
+    const headers = ['No','enName','NRC','Phone','အမည်','NRC တိုင်း/ပြည်နယ်','NRC မြို့နယ်','NRC အမျိုးအစား','NRC နံပါတ်','ဖုန်းနံပါတ်'];
+
+    const keyMap = {
+        'No': 'No',
+        'enName': 'enName',
+        'NRC': 'NRC',
+        'Phone': 'Phone',
+        'အမည်': 'mmName',
+        'NRC တိုင်း/ပြည်နယ်': 'NRCdiv',
+        'NRC မြို့နယ်': 'NRCtsp',
+        'NRC အမျိုးအစား': 'NRCtype',
+        'NRC နံပါတ်': 'NRCno',
+        'ဖုန်းနံပါတ်': 'ePhone'
+    };
+
+    const textFormatKeys = ['NRC', 'Phone', 'NRCno', 'ePhone'];
+
+
+    let csv = headers.join(',') + '\n';
+    
+    results.forEach(row => {
+        const rowData = headers.map(header => {
+            const key = keyMap[header];
+            const val = row[key] !== undefined && row[key] !== null ? row[key] : '';
+
+            const escapedVal = `"${String(val).replace(/"/g, '""')}"`;
+
+            if (textFormatKeys.includes(key)) {
+                return `=${escapedVal}`;
+            }
+            return escapedVal;
+        });
+        csv += rowData.join(',') + '\n';
+    });
+
+    // UTF-8 BOM ထည့်ခြင်း (မြန်မာစာအတွက်)
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csv], { 
+        type: 'text/csv;charset=utf-8' 
+    });
+    
+    const now = new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nrc_processed_${ts}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+    // ============ Start ============
+    document.addEventListener('DOMContentLoaded', () => {
+        debugLog('Process page loaded');
+        processData();
+    });
+    
+    window.exportToCSV = exportToCSV;
+    </script>
+</body>
+</html>

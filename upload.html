@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload File - မြန်မာအမည်များ ဘာသာပြန်ခြင်းစနစ်</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container">
+            <a href="index.html" class="navbar-brand">
+                <i class="bi bi-geo-alt"></i> မြန်မာအမည်များ ဘာသာပြန်ခြင်းစနစ်
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+
+                <div id="errorMessage" class="alert alert-danger d-none"></div>
+                <div id="successMessage" class="alert alert-success d-none"></div>
+                
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Upload CSV File</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h6>Required Columns:</h6>
+                            <code>No, enName, NRC, Phone</code><br>
+                            <small class="text-muted">Other columns will be auto-filled</small>
+                        </div>
+                        
+                        <!-- Method Selection -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Choose Input Method:</label>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary active" id="btnFileUpload" 
+                                        onclick="showFileUpload()">
+                                    File Upload
+                                </button>
+                                <button class="btn btn-outline-secondary" id="btnPasteData" 
+                                        onclick="showPasteData()">
+                                    Paste Data
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- File Upload Section -->
+                        <div id="fileUploadSection">
+                            <form id="uploadForm">
+                                <div class="mb-3">
+                                    <label for="csvFile" class="form-label">
+                                        <strong>Choose CSV File</strong>
+                                    </label>
+                                    <input type="file" class="form-control" id="csvFile" 
+                                           accept=".csv,.txt" required>
+                                    <div class="form-text" id="fileInfo"></div>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    Upload and Process
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <!-- Paste Data Section -->
+                        <div id="pasteDataSection" class="d-none">
+                            <form id="pasteForm">
+                                <div class="mb-3">
+                                    <label for="csvData" class="form-label">
+                                        <strong>Paste CSV Data</strong>
+                                    </label>
+                                    <textarea class="form-control" id="csvData" rows="10" 
+                                              placeholder="No,enName,NRC,Phone
+1,Htin Linn Aye,9/Ma Na Ma (C) 001002,+095(09)2010240
+2,Mg Mg,12/Ya Na Pha (N) 123456,+959123456789" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    Process Data
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+    // ============ Debug Function ============
+    function debugLog(message, data) {
+        console.log(`[DEBUG] ${message}`, data || '');
+        const debugInfo = document.getElementById('debugInfo');
+        const debugContent = document.getElementById('debugContent');
+        if (debugInfo && debugContent) {
+            debugInfo.classList.remove('d-none');
+            debugContent.textContent += `${new Date().toLocaleTimeString()}: ${message}\n`;
+            if (data) {
+                debugContent.textContent += JSON.stringify(data, null, 2) + '\n';
+            }
+        }
+    }
+    
+    // ============ Show/Hide Sections ============
+    function showFileUpload() {
+        document.getElementById('fileUploadSection').classList.remove('d-none');
+        document.getElementById('pasteDataSection').classList.add('d-none');
+        document.getElementById('btnFileUpload').classList.add('active');
+        document.getElementById('btnPasteData').classList.remove('active');
+    }
+    
+    function showPasteData() {
+        document.getElementById('fileUploadSection').classList.add('d-none');
+        document.getElementById('pasteDataSection').classList.remove('d-none');
+        document.getElementById('btnFileUpload').classList.remove('active');
+        document.getElementById('btnPasteData').classList.add('active');
+    }
+    
+    // ============ Parse CSV ============
+    function parseCSV(csvText) {
+        debugLog('Parsing CSV text, length:', csvText.length);
+        
+        if (!csvText || !csvText.trim()) {
+            throw new Error('CSV text is empty');
+        }
+        
+        // Split by newlines (handle both \n and \r\n)
+        const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+        debugLog(`Found ${lines.length} lines`);
+        
+        if (lines.length < 2) {
+            throw new Error('CSV must have header row and at least one data row');
+        }
+        
+        // Parse header
+        const headers = lines[0].split(',').map(h => h.trim());
+        debugLog('Headers:', headers);
+        
+        // Parse data rows
+        const data = [];
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim());
+            debugLog(`Row ${i} values:`, values);
+            
+            if (values.length >= headers.length) {
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                });
+                data.push(row);
+                debugLog(`Row ${i} parsed:`, row);
+            } else {
+                debugLog(`Row ${i} skipped - column count mismatch (headers: ${headers.length}, values: ${values.length})`);
+            }
+        }
+        
+        debugLog(`Total parsed rows: ${data.length}`);
+        return data;
+    }
+    
+    // ============ Handle File Upload ============
+    async function handleFileUpload(e) {
+        e.preventDefault();
+        debugLog('=== File Upload Started ===');
+        
+        const fileInput = document.getElementById('csvFile');
+        const errorDiv = document.getElementById('errorMessage');
+        
+        // Hide previous errors
+        errorDiv.classList.add('d-none');
+        
+        // Check if file is selected
+        if (!fileInput.files || !fileInput.files[0]) {
+            const msg = 'Please select a file first';
+            debugLog('ERROR: ' + msg);
+            errorDiv.textContent = msg;
+            errorDiv.classList.remove('d-none');
+            return false;
+        }
+        
+        const file = fileInput.files[0];
+        debugLog('File selected:', {
+            name: file.name,
+            size: file.size,
+            type: file.type
+        });
+        
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            const msg = 'File too large. Maximum size is 10MB. Your file: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB';
+            debugLog('ERROR: ' + msg);
+            errorDiv.textContent = msg;
+            errorDiv.classList.remove('d-none');
+            return false;
+        }
+        
+        try {
+            // Read file
+            debugLog('Reading file...');
+            const text = await file.text();
+            debugLog('File read successfully, first 100 chars:', text.substring(0, 100));
+            
+            // Parse CSV
+            const data = parseCSV(text);
+            
+            if (data.length === 0) {
+                const msg = 'No valid data found in file. Please check the format.';
+                debugLog('ERROR: ' + msg);
+                errorDiv.textContent = msg;
+                errorDiv.classList.remove('d-none');
+                return false;
+            }
+            
+			if (data.length > 20) {
+                const msg = `Too many rows. Maximum allowed is 20 rows. Your file has ${data.length} rows.`;
+                debugLog('ERROR: ' + msg);
+                errorDiv.textContent = msg;
+                errorDiv.classList.remove('d-none');
+                return false;
+            }
+			
+            // Store data in sessionStorage
+            debugLog('Storing data to sessionStorage...');
+            sessionStorage.setItem('processed_data', JSON.stringify(data));
+            
+            // Verify storage
+            const stored = sessionStorage.getItem('processed_data');
+            debugLog('Data stored, size:', stored ? stored.length : 0);
+            
+            // Show success message
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = `Successfully parsed ${data.length} records. Redirecting...`;
+            successDiv.classList.remove('d-none');
+            
+            // Redirect after short delay
+            debugLog('Redirecting to process.html...');
+            setTimeout(() => {
+                window.location.href = 'process.html';
+            }, 500);
+            
+        } catch (error) {
+            debugLog('ERROR:', error.message);
+            console.error('Full error:', error);
+            errorDiv.textContent = 'Error: ' + error.message;
+            errorDiv.classList.remove('d-none');
+            return false;
+        }
+        
+        return false;
+    }
+    
+    // ============ Handle Paste Form ============
+    async function handlePasteForm(e) {
+        e.preventDefault();
+        debugLog('=== Paste Data Started ===');
+        
+        const csvData = document.getElementById('csvData').value;
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.classList.add('d-none');
+        
+        if (!csvData.trim()) {
+            const msg = 'Please paste CSV data';
+            debugLog('ERROR: ' + msg);
+            errorDiv.textContent = msg;
+            errorDiv.classList.remove('d-none');
+            return false;
+        }
+        
+        try {
+            const data = parseCSV(csvData);
+            
+            if (data.length === 0) {
+                const msg = 'No valid data found. Check format.';
+                debugLog('ERROR: ' + msg);
+                errorDiv.textContent = msg;
+                errorDiv.classList.remove('d-none');
+                return false;
+            }
+            
+            sessionStorage.setItem('processed_data', JSON.stringify(data));
+            
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = `Successfully parsed ${data.length} records. Redirecting...`;
+            successDiv.classList.remove('d-none');
+            
+            setTimeout(() => {
+                window.location.href = 'process.html';
+            }, 500);
+            
+        } catch (error) {
+            debugLog('ERROR:', error.message);
+            errorDiv.textContent = 'Error: ' + error.message;
+            errorDiv.classList.remove('d-none');
+            return false;
+        }
+        
+        return false;
+    }
+    
+    // ============ Event Listeners ============
+    document.addEventListener('DOMContentLoaded', function() {
+        debugLog('Page loaded');
+        
+        // Check if sessionStorage works
+        try {
+            sessionStorage.setItem('test', 'test');
+            sessionStorage.removeItem('test');
+            debugLog('sessionStorage is available');
+        } catch (e) {
+            debugLog('WARNING: sessionStorage is not available!');
+        }
+        
+        // Attach form handlers
+        const uploadForm = document.getElementById('uploadForm');
+        if (uploadForm) {
+            uploadForm.addEventListener('submit', handleFileUpload);
+            debugLog('Upload form handler attached');
+        } else {
+            debugLog('ERROR: uploadForm not found!');
+        }
+        
+        const pasteForm = document.getElementById('pasteForm');
+        if (pasteForm) {
+            pasteForm.addEventListener('submit', handlePasteForm);
+            debugLog('Paste form handler attached');
+        } else {
+            debugLog('ERROR: pasteForm not found!');
+        }
+        
+        // File input change handler
+        const csvFile = document.getElementById('csvFile');
+        if (csvFile) {
+            csvFile.addEventListener('change', function() {
+                const file = this.files[0];
+                const fileInfo = document.getElementById('fileInfo');
+                if (file && fileInfo) {
+                    fileInfo.textContent = `Selected: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+                }
+                debugLog('File input changed', file ? file.name : 'no file');
+            });
+        }
+    });
+    </script>
+</body>
+</html>
