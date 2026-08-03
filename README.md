@@ -22,7 +22,7 @@
 
 ## 🛠️ Tech Stack
 
--   **Frontend:** HTML5, CSS3, JavaScript (Vanilla JS)
+-   **Frontend:** HTML5, CSS3, JavaScript
     
 -   **Backend / Database:** [Supabase](https://supabase.com/)
     
