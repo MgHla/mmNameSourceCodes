@@ -1,0 +1,33 @@
+.mm-font {
+    font-size: 1.1em;
+}
+
+.phone-processed {
+    font-weight: bold;
+    color: #198754;
+}
+
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.card {
+    border-radius: 10px;
+}
+
+.btn {
+    border-radius: 8px;
+}
+
+.spinner-border {
+    animation: spinner-border 0.75s linear infinite;
+}
+
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
+}
