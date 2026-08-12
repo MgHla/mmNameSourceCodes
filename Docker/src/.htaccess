@@ -1,0 +1,25 @@
+# PHP limits (only applies when AllowOverride FileInfo is enabled)
+php_value upload_max_filesize 100M
+php_value post_max_size 100M
+php_value max_execution_time 300
+php_value max_input_time 300
+
+# Disable directory listing
+Options -Indexes
+
+# Security headers (only applies when mod_headers + AllowOverride is enabled)
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Content-Security-Policy "default-src 'self' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+</IfModule>
+
+# Block direct web access to sensitive paths (only applies when mod_rewrite is enabled)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(?:config|includes|locks|vendor|uploads)(?:/|$) - [F,L,NC]
+    RewriteRule \.(?:htaccess|lock|sql|log|bak|env)$ - [F,L,NC]
+</IfModule>
