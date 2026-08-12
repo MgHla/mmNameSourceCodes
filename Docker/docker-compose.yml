@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
+    container_name: mmName
+    ports:
+      - "8081:80"
+    volumes:
+      - ./src/:/var/www/html/
+    environment:
+      - DB_HOST=db
+      - DB_NAME=${MYSQL_DATABASE}
+      - DB_USER=${MYSQL_USER}
+      - DB_PASS=${MYSQL_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: mmName-mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/init/:/docker-entrypoint-initdb.d/
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # PHPmyAdmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: mmName-phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    ports:
+      - "8082:80"
+    depends_on:
+      - db
+
+volumes:
+  db_data: 
